@@ -42,7 +42,7 @@
       {
         "name": "AMD Newsroom",
         "url": "https://www.amd.com/en/newsroom/rss.xml",
-        "enabled": true,
+        "enabled": false,
         "category": "compute-chip"
       },
       {
@@ -60,13 +60,13 @@
       {
         "name": "Data Center Dynamics",
         "url": "https://www.datacenterdynamics.com/en/rss/",
-        "enabled": true,
+        "enabled": false,
         "category": "datacenter"
       },
       {
         "name": "HPCwire",
         "url": "https://www.hpcwire.com/feed/",
-        "enabled": true,
+        "enabled": false,
         "category": "ai-infra"
       },
       {
@@ -84,7 +84,7 @@
       {
         "name": "The Robot Report",
         "url": "https://www.therobotreport.com/feed/",
-        "enabled": true,
+        "enabled": false,
         "category": "robotics"
       },
       {
@@ -104,6 +104,84 @@
         "url": "https://spectrum.ieee.org/feeds/topic/semiconductors.rss",
         "enabled": true,
         "category": "semiconductor"
+      },
+      {
+        "name": "OpenAI News",
+        "url": "https://openai.com/news/rss.xml",
+        "enabled": true,
+        "category": "ai"
+      },
+      {
+        "name": "Google DeepMind Blog",
+        "url": "https://deepmind.google/blog/rss.xml",
+        "enabled": true,
+        "category": "ai"
+      },
+      {
+        "name": "The Next Platform",
+        "url": "https://www.nextplatform.com/feed/",
+        "enabled": true,
+        "category": "datacenter"
+      },
+      {
+        "name": "Data Center Knowledge",
+        "url": "https://www.datacenterknowledge.com/rss.xml",
+        "enabled": true,
+        "category": "datacenter"
+      },
+      {
+        "name": "SemiWiki",
+        "url": "https://semiwiki.com/feed/",
+        "enabled": true,
+        "category": "semiconductor"
+      },
+      {
+        "name": "Semiconductor Digest",
+        "url": "https://www.semiconductor-digest.com/feed/",
+        "enabled": true,
+        "category": "semiconductor"
+      },
+      {
+        "name": "Robotics Tomorrow",
+        "url": "https://www.roboticstomorrow.com/rss_news.php",
+        "enabled": true,
+        "category": "robotics"
+      },
+      {
+        "name": "Robohub",
+        "url": "https://robohub.org/feed/",
+        "enabled": true,
+        "category": "robotics"
+      },
+      {
+        "name": "Utility Dive",
+        "url": "https://www.utilitydive.com/feeds/news/",
+        "enabled": true,
+        "category": "power-energy"
+      },
+      {
+        "name": "Energy.gov",
+        "url": "https://www.energy.gov/rss.xml",
+        "enabled": true,
+        "category": "power-energy"
+      },
+      {
+        "name": "Google News - HBM Memory",
+        "url": "https://news.google.com/rss/search?q=HBM%20%22high%20bandwidth%20memory%22%20DRAM%20when%3A1d&hl=en-US&gl=US&ceid=US:en",
+        "enabled": true,
+        "category": "hbm"
+      },
+      {
+        "name": "Google News - Data Center Liquid Cooling",
+        "url": "https://news.google.com/rss/search?q=%22liquid%20cooling%22%20%22data%20center%22%20AI%20when%3A1d&hl=en-US&gl=US&ceid=US:en",
+        "enabled": true,
+        "category": "liquid-cooling"
+      },
+      {
+        "name": "Google News - Optical Interconnect CPO",
+        "url": "https://news.google.com/rss/search?q=%22co-packaged%20optics%22%20OR%20%22silicon%20photonics%22%20%22data%20center%22%20when%3A7d&hl=en-US&gl=US&ceid=US:en",
+        "enabled": true,
+        "category": "optical-interconnect"
       }
     ],
     "reddit": {
@@ -182,13 +260,13 @@
     }
   },
   "filtering": {
-    "ai_score_threshold": 6.5,
+    "ai_score_threshold": 6.0,
     "time_window_hours": 24,
-    "max_items": 20,
+    "max_items": 10,
     "category_groups": {
       "ai": {
         "name": "AI / Physical AI",
-        "limit": 4,
+        "limit": 3,
         "categories": [
           "ai",
           "ai-infra",
@@ -198,7 +276,7 @@
       },
       "semiconductor": {
         "name": "Semiconductor / Compute Chips",
-        "limit": 4,
+        "limit": 3,
         "categories": [
           "semiconductor",
           "compute-chip",
@@ -209,11 +287,10 @@
       },
       "datacenter": {
         "name": "Datacenter / Power / Cooling",
-        "limit": 4,
+        "limit": 3,
         "categories": [
           "datacenter",
           "liquid-cooling",
-          "power-energy",
           "optical-interconnect"
         ]
       },
@@ -228,9 +305,16 @@
           "enterprise-ssd"
         ]
       },
+      "power": {
+        "name": "Power / Energy / Grid",
+        "limit": 2,
+        "categories": [
+          "power-energy"
+        ]
+      },
       "markets": {
         "name": "A/H/US Listed Supply Chain",
-        "limit": 5,
+        "limit": 2,
         "categories": [
           "equities",
           "a-share",
@@ -241,7 +325,7 @@
       }
     },
     "default_group": "other",
-    "default_group_limit": 3
+    "default_group_limit": 2
   },
   "webhook": {
     "enabled": false,
