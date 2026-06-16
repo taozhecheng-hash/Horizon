@@ -1,7 +1,7 @@
 """Daily summary generation — pure programmatic rendering."""
 
 import re
-from typing import List, Dict
+from typing import Any, List, Dict
 
 from ..models import ContentItem
 
@@ -25,6 +25,16 @@ LABELS = {
         "discussion": "Discussion",
         "references": "References",
         "tags": "Tags",
+        "investment_what_happened": "What happened",
+        "investment_why_it_matters": "Why it matters",
+        "investment_supply_chain_impact": "Supply-chain impact",
+        "investment_related_companies": "Potentially related companies",
+        "investment_confidence": "Confidence",
+        "investment_score": "Investment value score",
+        "investment_tracking_required": "Needs follow-up",
+        "investment_reason": "Investment rationale",
+        "yes": "Yes",
+        "no": "No",
         "selected_items": "From {total} items, {selected} important content pieces were selected",
         "empty_analyzed": "Analyzed {total} items, but none met the importance threshold.",
         "empty_body": (
@@ -45,6 +55,16 @@ LABELS = {
         "discussion": "社区讨论",
         "references": "参考链接",
         "tags": "标签",
+        "investment_what_happened": "发生了什么",
+        "investment_why_it_matters": "为什么重要",
+        "investment_supply_chain_impact": "影响产业链",
+        "investment_related_companies": "可能相关公司",
+        "investment_confidence": "可信度",
+        "investment_score": "投研价值评分",
+        "investment_tracking_required": "是否需要继续追踪",
+        "investment_reason": "投研理由",
+        "yes": "是",
+        "no": "否",
         "selected_items": "从 {total} 条内容中筛选出 {selected} 条重要资讯。",
         "empty_analyzed": "已分析 {total} 条内容，但没有达到重要性阈值的条目。",
         "empty_body": (
@@ -158,9 +178,23 @@ class DailySummarizer:
         """Generate one item message for multi-message webhook delivery."""
         labels = LABELS.get(language, LABELS["en"])
         prefix = f"第 {index}/{total} 条\n\n" if language == "zh" else f"Item {index}/{total}\n\n"
-        return prefix + self._format_item(item, labels, language, index).rstrip("-\n ")
+        return prefix + self._format_item(
+            item,
+            labels,
+            language,
+            index,
+            include_investment=False,
+        ).rstrip("-\n ")
 
-    def _format_item(self, item: ContentItem, labels: dict, language: str, index: int) -> str:
+    def _format_item(
+        self,
+        item: ContentItem,
+        labels: dict,
+        language: str,
+        index: int,
+        *,
+        include_investment: bool = True,
+    ) -> str:
         """Format a single ContentItem into Markdown."""
         _title = item.metadata.get(f"title_{language}") or item.title
         title = str(_title).replace("[", "(").replace("]", ")")
@@ -238,6 +272,12 @@ class DailySummarizer:
             lines.append("")
             lines.append(f"**{labels['discussion']}**: {discussion}")
 
+        if include_investment:
+            investment_lines = self._format_investment(meta.get("investment"), labels, language)
+            if investment_lines:
+                lines.append("")
+                lines.extend(investment_lines)
+
         if item.ai_tags:
             tags_str = ", ".join([f"`#{t}`" for t in item.ai_tags])
             lines.append("")
@@ -247,6 +287,66 @@ class DailySummarizer:
         lines.append("---")
 
         return "\n".join(lines) + "\n\n"
+
+    def _format_investment(self, investment: Any, labels: dict, language: str) -> List[str]:
+        if not isinstance(investment, dict):
+            return []
+
+        def clean(value: Any) -> str:
+            if value is None:
+                return ""
+            if isinstance(value, str):
+                text = value.strip()
+            else:
+                text = str(value).strip()
+            return _pangu(text) if language == "zh" else text
+
+        def bool_label(value: Any) -> str:
+            if isinstance(value, bool):
+                return labels["yes"] if value else labels["no"]
+            if isinstance(value, str):
+                enabled = value.strip().lower() in {"true", "yes", "y", "1", "是", "需要"}
+                return labels["yes"] if enabled else labels["no"]
+            return labels["yes"] if bool(value) else labels["no"]
+
+        lines = []
+        field_labels = [
+            ("what_happened", "investment_what_happened"),
+            ("why_it_matters", "investment_why_it_matters"),
+            ("supply_chain_impact", "investment_supply_chain_impact"),
+        ]
+        for field, label_key in field_labels:
+            text = clean(investment.get(field))
+            if text:
+                lines.append(f"**{labels[label_key]}**: {text}")
+
+        related = investment.get("related_companies")
+        if isinstance(related, list):
+            related_text = ", ".join(clean(company) for company in related if clean(company))
+        else:
+            related_text = clean(related)
+        if related_text:
+            lines.append(f"**{labels['investment_related_companies']}**: {related_text}")
+
+        confidence = clean(investment.get("confidence"))
+        if confidence:
+            lines.append(f"**{labels['investment_confidence']}**: {confidence}")
+
+        score = investment.get("score")
+        if score is not None:
+            lines.append(f"**{labels['investment_score']}**: {clean(score)} / 100")
+
+        if "tracking_required" in investment:
+            lines.append(
+                f"**{labels['investment_tracking_required']}**: "
+                f"{bool_label(investment.get('tracking_required'))}"
+            )
+
+        reason = clean(investment.get("reason"))
+        if reason:
+            lines.append(f"**{labels['investment_reason']}**: {reason}")
+
+        return lines
 
     def _generate_empty_summary(self, date: str, total_fetched: int, labels: dict) -> str:
         """Generate summary when no high-scoring items were found."""
