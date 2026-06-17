@@ -60,6 +60,76 @@ def test_generate_webhook_item_renders_single_item_detail():
     assert "**Tags**: `#AI`, `#News`" in result
 
 
+def test_generate_summary_renders_investment_metadata_for_zh():
+    summarizer = DailySummarizer()
+    item = _make_item(1)
+    item.metadata["investment"] = {
+        "score": 78,
+        "what_happened": "公司宣布获得 AI 数据中心液冷订单。",
+        "why_it_matters": "订单可能提升液冷供应链收入可见度。",
+        "supply_chain_impact": "影响冷板、泵阀和机柜集成环节。",
+        "related_companies": ["Vertiv", "英维克"],
+        "confidence": "中：来自公司公告但尚未披露金额。",
+        "tracking_required": True,
+        "reason": "具备订单线索和明确 AI 基础设施需求，但业绩弹性仍需验证。",
+    }
+
+    result = _run_async(
+        summarizer.generate_summary(
+            [item],
+            date="2026-04-25",
+            total_fetched=10,
+            language="zh",
+        )
+    )
+
+    assert "**发生了什么**: 公司宣布获得 AI 数据中心液冷订单。" in result
+    assert "**为什么重要**: 订单可能提升液冷供应链收入可见度。" in result
+    assert "**影响产业链**: 影响冷板、泵阀和机柜集成环节。" in result
+    assert "**可能相关公司**: Vertiv, 英维克" in result
+    assert "**可信度**: 中：来自公司公告但尚未披露金额。" in result
+    assert "**投研价值评分**: 78 / 100" in result
+    assert "**是否需要继续追踪**: 是" in result
+    assert "**投研理由**: 具备订单线索和明确 AI 基础设施需求，但业绩弹性仍需验证。" in result
+
+
+def test_generate_summary_omits_investment_section_when_absent():
+    summarizer = DailySummarizer()
+    item = _make_item(1)
+
+    result = _run_async(
+        summarizer.generate_summary(
+            [item],
+            date="2026-04-25",
+            total_fetched=10,
+            language="zh",
+        )
+    )
+
+    assert "**投研价值评分**" not in result
+    assert "**是否需要继续追踪**" not in result
+
+
+def test_generate_webhook_item_does_not_include_investment_metadata():
+    summarizer = DailySummarizer()
+    item = _make_item(1)
+    item.metadata["investment"] = {
+        "score": 88,
+        "what_happened": "公司宣布获得 AI 数据中心液冷订单。",
+        "tracking_required": True,
+    }
+
+    result = summarizer.generate_webhook_item(
+        item,
+        language="zh",
+        index=1,
+        total=1,
+    )
+
+    assert "**投研价值评分**" not in result
+    assert "**发生了什么**" not in result
+
+
 def test_generate_webhook_item_includes_discussion_link_when_distinct():
     summarizer = DailySummarizer()
     item = _make_item(1)

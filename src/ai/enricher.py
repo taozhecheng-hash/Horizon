@@ -10,7 +10,7 @@ import json
 import re
 import sys
 import os
-from typing import List, Optional
+from typing import Any, List, Optional
 from tenacity import retry, stop_after_attempt, wait_exponential
 from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, MofNCompleteColumn
 from ddgs import DDGS
@@ -26,6 +26,16 @@ from ..models import ContentItem
 
 class ContentEnricher:
     """Enriches high-scoring content items with background knowledge."""
+
+    INVESTMENT_SCORE_FIELDS = {
+        "capex_impact": 20,
+        "order_evidence": 20,
+        "supply_demand_impact": 15,
+        "platform_binding": 15,
+        "earnings_elasticity": 15,
+        "source_confidence": 10,
+        "novelty": 5,
+    }
 
     def __init__(self, ai_client: AIClient):
         self.client = ai_client
@@ -98,6 +108,70 @@ class ContentEnricher:
         Returns the parsed dict, or None if all strategies fail.
         """
         return parse_json_response(response)
+
+    @classmethod
+    def _clamp_score(cls, value: Any, upper: int) -> int:
+        try:
+            number = round(float(value))
+        except (TypeError, ValueError):
+            return 0
+        return max(0, min(upper, int(number)))
+
+    @staticmethod
+    def _string_value(value: Any) -> str:
+        if value is None:
+            return ""
+        if isinstance(value, str):
+            return value.strip()
+        return str(value).strip()
+
+    @staticmethod
+    def _bool_value(value: Any) -> bool:
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            return value.strip().lower() in {"true", "yes", "y", "1", "是", "需要"}
+        return bool(value)
+
+    @classmethod
+    def _normalize_investment(cls, payload: Any) -> Optional[dict]:
+        """Normalize AI investment output into a stable metadata payload."""
+        if not isinstance(payload, dict):
+            return None
+
+        sub_scores = {
+            field: cls._clamp_score(payload.get(field), upper)
+            for field, upper in cls.INVESTMENT_SCORE_FIELDS.items()
+        }
+        total = sum(sub_scores.values())
+
+        related = payload.get("related_companies", [])
+        if isinstance(related, str):
+            related_companies = [
+                part.strip()
+                for part in re.split(r"[,;，；、]", related)
+                if part.strip()
+            ]
+        elif isinstance(related, list):
+            related_companies = [
+                cls._string_value(company)
+                for company in related
+                if cls._string_value(company)
+            ]
+        else:
+            related_companies = []
+
+        return {
+            "score": max(0, min(100, total)),
+            **sub_scores,
+            "what_happened": cls._string_value(payload.get("what_happened")),
+            "why_it_matters": cls._string_value(payload.get("why_it_matters")),
+            "supply_chain_impact": cls._string_value(payload.get("supply_chain_impact")),
+            "related_companies": related_companies[:12],
+            "confidence": cls._string_value(payload.get("confidence")),
+            "tracking_required": cls._bool_value(payload.get("tracking_required")),
+            "reason": cls._string_value(payload.get("reason")),
+        }
 
     async def _extract_concepts(self, item: ContentItem, content_text: str) -> List[str]:
         """Ask AI to identify concepts that need explanation.
@@ -230,6 +304,10 @@ class ContentEnricher:
             ]
             if valid:
                 item.metadata["sources"] = valid
+
+        investment = self._normalize_investment(result.get("investment"))
+        if investment:
+            item.metadata["investment"] = investment
 
         # Backward-compatible fallback fields (English as default)
         item.metadata["detailed_summary"] = item.metadata.get("detailed_summary_en", "")

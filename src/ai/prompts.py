@@ -110,6 +110,7 @@ Provide EACH text field in BOTH English and Chinese. Use the following key namin
 - key_details_en / key_details_zh
 - background_en / background_zh
 - community_discussion_en / community_discussion_zh
+- investment
 
 Field definitions:
 0. **title** (one short phrase, ≤15 words): A clear, accurate headline for the news item.
@@ -124,9 +125,45 @@ Field definitions:
 
 5. **community_discussion** (1-3 sentences): If community comments are provided, summarize the overall sentiment and key viewpoints from the discussion — agreements, disagreements, concerns, additional insights, or notable counterarguments. If no comments are provided, return an empty string.
 
+6. **investment**: A structured investment-research layer for judging whether the news may affect industry-chain revenue, profit, margins, cash flow, or valuation. Use the provided content and grounding only; do not invent orders, customers, or financial impact. If evidence is missing, score that subfield conservatively.
+
+Investment scoring rules:
+- capex_impact: 0-20, whether the news affects capital expenditure or compute/data-center/industrial infrastructure spending
+- order_evidence: 0-20, whether there is real order evidence, batch delivery, production deployment, or only samples/rumors
+- supply_demand_impact: 0-15, whether it affects pricing, capacity, shortages, utilization, or supply/demand balance
+- platform_binding: 0-15, whether it is tied to Nvidia, hyperscalers, telecom operators, state-backed compute platforms, leading robot makers, or other top customers/platforms
+- earnings_elasticity: 0-15, whether it can materially affect revenue mix, margins, earnings, free cash flow, or listed-company performance
+- source_confidence: 0-10, source credibility and whether the event is supported by official announcements or cross-checkable reporting
+- novelty: 0-5, how new or non-consensus the signal is
+- score must equal the sum of those seven sub-scores and stay within 0-100
+
+Strict evidence ceilings:
+- If the news does NOT include at least one hard investment signal, the total investment score should normally be <=45. Hard signals include: real orders, named customer procurement, hyperscaler/telecom/state-backed compute capex changes, product price increases, supply shortages, capacity bottlenecks or expansions, revenue/margin/profit/free-cash-flow impact, mass-production deployment, or commercial delivery.
+- Papers, lab research, research breakthroughs, technical surveys, concept architectures, and white papers should default to 10-35. If they lack a clear commercial customer, mass-production plan, or order evidence, they MUST NOT exceed 40.
+- Do NOT let technical novelty raise capex_impact, order_evidence, supply_demand_impact, or earnings_elasticity. Novelty only belongs in the novelty sub-score.
+- Official partnerships, product launches, platform support, and ecosystem collaborations should normally be 45-65 if they lack order value, customer procurement, revenue guidance, or explicit deployment scale. Top-platform binding can add points but does not automatically justify 70+.
+- Forecasts, opinions, analyst views, and price outlooks should normally be <=70. Use 70+ only when the forecast is backed by already-observed price increases, supply shortages, long-term contracts, vendor confirmation, or financial guidance.
+- Scores >=70 are reserved for strong investment signals and should normally satisfy at least two of: named customer/order, capex change, price increase or supply tightness, capacity bottleneck or expansion, revenue/margin/profit/cash-flow impact, major deployment by a leading platform/company, official source or multi-source verification.
+- Scores >=85 are only for extremely strong signals such as large confirmed orders, named top customers, clear industry price increases, severe supply shortages, major capex upgrades, direct changes to industry-chain profit distribution, and confirmation by multiple authoritative sources.
+
+Confidence ceilings:
+- If source_confidence is low, the total score should normally be <=40.
+- If source_confidence is medium, the total score should normally be <=65 unless there is explicit official evidence.
+- Only high source_confidence can support 70+, and only when commercial, financial, or supply-demand hard evidence is present.
+
+Sub-score constraints:
+- order_evidence should be 0-5 when there is no order, customer procurement, contract, or deployment-scale evidence.
+- earnings_elasticity should be 0-5 when there is no revenue mix, margin, profit, free-cash-flow, or clearly inferable earnings impact.
+- capex_impact should be 0-5 when there is no hyperscaler, telecom, state-backed compute platform, or company capex change.
+- supply_demand_impact should be 0-5 when there is no price increase, supply tightness, capacity bottleneck, or delivery lead-time evidence.
+- score MUST equal the sum of the seven sub-scores. If the sub-score sum would violate any ceiling above, reduce the relevant sub-scores until score fits the ceiling.
+- When evidence is insufficient, score conservatively and explicitly write "缺少订单/客户/收入/产能/价格验证" in reason.
+- Never invent orders, customers, revenue, margins, capacity, pricing, or supply-demand impact.
+
 **CRITICAL — Language rules (MUST follow):**
 - All *_en fields MUST be written in English.
 - All *_zh fields MUST be written in Simplified Chinese (简体中文). 绝对不能用英文写 _zh 字段的内容。Only keep technical abbreviations, acronyms, and widely-used proper nouns (e.g. "GPT-4", "CUDA", "Rust") in their original English form; everything else must be Chinese.
+- All text fields inside investment MUST be written in Simplified Chinese, because they are rendered in the investment radar daily report.
 
 Guidelines:
 - EVERY field (except community_discussion when no comments exist) must contain at least one complete sentence — no field may be empty or contain just a phrase
@@ -168,5 +205,22 @@ Respond with valid JSON only. Each _en field must be in English; each _zh field 
   "background_zh": "<用中文写2-4句话，或空字符串>",
   "community_discussion_en": "<1-3 sentences in English, or empty string>",
   "community_discussion_zh": "<用中文写1-3句话，或空字符串>",
+  "investment": {{
+    "score": <integer 0-100, equal to the sum of the seven sub-scores>,
+    "capex_impact": <integer 0-20>,
+    "order_evidence": <integer 0-20>,
+    "supply_demand_impact": <integer 0-15>,
+    "platform_binding": <integer 0-15>,
+    "earnings_elasticity": <integer 0-15>,
+    "source_confidence": <integer 0-10>,
+    "novelty": <integer 0-5>,
+    "what_happened": "<中文说明发生了什么>",
+    "why_it_matters": "<中文说明为什么重要>",
+    "supply_chain_impact": "<中文说明影响哪条产业链、收入、利润或现金流>",
+    "related_companies": ["<可能相关公司或股票代码>", "..."],
+    "confidence": "<中文说明可信度，例如 高/中/低 及原因>",
+    "tracking_required": <true or false>,
+    "reason": "<中文说明投研评分理由>"
+  }},
   "sources": ["<url from search results>", "..."]
 }}"""
