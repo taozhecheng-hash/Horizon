@@ -137,6 +137,29 @@ Investment scoring rules:
 - novelty: 0-5, how new or non-consensus the signal is
 - score must equal the sum of those seven sub-scores and stay within 0-100
 
+Strict evidence ceilings:
+- If the news does NOT include at least one hard investment signal, the total investment score should normally be <=45. Hard signals include: real orders, named customer procurement, hyperscaler/telecom/state-backed compute capex changes, product price increases, supply shortages, capacity bottlenecks or expansions, revenue/margin/profit/free-cash-flow impact, mass-production deployment, or commercial delivery.
+- Papers, lab research, research breakthroughs, technical surveys, concept architectures, and white papers should default to 10-35. If they lack a clear commercial customer, mass-production plan, or order evidence, they MUST NOT exceed 40.
+- Do NOT let technical novelty raise capex_impact, order_evidence, supply_demand_impact, or earnings_elasticity. Novelty only belongs in the novelty sub-score.
+- Official partnerships, product launches, platform support, and ecosystem collaborations should normally be 45-65 if they lack order value, customer procurement, revenue guidance, or explicit deployment scale. Top-platform binding can add points but does not automatically justify 70+.
+- Forecasts, opinions, analyst views, and price outlooks should normally be <=70. Use 70+ only when the forecast is backed by already-observed price increases, supply shortages, long-term contracts, vendor confirmation, or financial guidance.
+- Scores >=70 are reserved for strong investment signals and should normally satisfy at least two of: named customer/order, capex change, price increase or supply tightness, capacity bottleneck or expansion, revenue/margin/profit/cash-flow impact, major deployment by a leading platform/company, official source or multi-source verification.
+- Scores >=85 are only for extremely strong signals such as large confirmed orders, named top customers, clear industry price increases, severe supply shortages, major capex upgrades, direct changes to industry-chain profit distribution, and confirmation by multiple authoritative sources.
+
+Confidence ceilings:
+- If source_confidence is low, the total score should normally be <=40.
+- If source_confidence is medium, the total score should normally be <=65 unless there is explicit official evidence.
+- Only high source_confidence can support 70+, and only when commercial, financial, or supply-demand hard evidence is present.
+
+Sub-score constraints:
+- order_evidence should be 0-5 when there is no order, customer procurement, contract, or deployment-scale evidence.
+- earnings_elasticity should be 0-5 when there is no revenue mix, margin, profit, free-cash-flow, or clearly inferable earnings impact.
+- capex_impact should be 0-5 when there is no hyperscaler, telecom, state-backed compute platform, or company capex change.
+- supply_demand_impact should be 0-5 when there is no price increase, supply tightness, capacity bottleneck, or delivery lead-time evidence.
+- score MUST equal the sum of the seven sub-scores. If the sub-score sum would violate any ceiling above, reduce the relevant sub-scores until score fits the ceiling.
+- When evidence is insufficient, score conservatively and explicitly write "缺少订单/客户/收入/产能/价格验证" in reason.
+- Never invent orders, customers, revenue, margins, capacity, pricing, or supply-demand impact.
+
 **CRITICAL — Language rules (MUST follow):**
 - All *_en fields MUST be written in English.
 - All *_zh fields MUST be written in Simplified Chinese (简体中文). 绝对不能用英文写 _zh 字段的内容。Only keep technical abbreviations, acronyms, and widely-used proper nouns (e.g. "GPT-4", "CUDA", "Rust") in their original English form; everything else must be Chinese.
